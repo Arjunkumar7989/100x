@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Arjun — Voicebot (100x Assessment)</title>
+  <style>
+    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+           background: #f7fafc; color:#0f172a; margin:0; padding:24px; }
+    .card { max-width:880px; margin:36px auto; background:white; border-radius:10px; padding:22px; box-shadow:0 8px 24px rgba(11,22,39,0.06); }
+    h1{margin:0 0 6px 0; font-size:20px}
+    p.lead{margin:0 0 12px 0; color:#334155}
+    .controls{display:flex; gap:12px; margin:14px 0 22px;}
+    button{padding:10px 14px; border-radius:8px; border:0; cursor:pointer; font-weight:600}
+    .record{background:#0ea5a1;color:white}
+    .speak{background:#2563eb;color:white}
+    .stop{background:#ef4444;color:white}
+    .transcript{background:#f1f5f9;border-radius:8px;padding:12px; min-height:60px}
+    .qa{margin-top:18px}
+    .hint{font-size:13px;color:#64748b}
+    footer{margin-top:16px;font-size:13px;color:#94a3b8}
+    .chip{display:inline-block;padding:6px 10px;border-radius:999px;background:#eef2ff;color:#3730a3;margin:6px 6px 0 0}
+  </style>
+</head>
+<body>
+  <div class="card" role="main">
+    <h1>Arjun’s Voicebot — 100x Stage 1 Demo</h1>
+    <p class="lead">Press <strong>Start Listening</strong>, ask any of the example questions (or speak freely) and the bot will answer in Arjun’s voice. Works in Chrome/Edge on desktop & Android.</p>
+
+    <div class="controls" aria-hidden="false">
+      <button id="startBtn" class="record">🎙 Start Listening</button>
+      <button id="stopBtn" class="stop">⛔ Stop</button>
+      <button id="replayBtn" class="speak">🔁 Replay Last Answer</button>
+    </div>
+
+    <div>
+      <div class="transcript" id="transcript">Transcript will appear here after you speak...</div>
+      <div class="hint">Try questions like: <span class="chip">Tell us your life story</span><span class="chip">What's your superpower?</span><span class="chip">Top 3 growth areas</span><span class="chip">How do you push your boundaries?</span></div>
+    </div>
+
+    <div class="qa" id="qa">
+      <h3>What the bot understands (keywords)</h3>
+      <p class="hint">It matches on keywords like <strong>life story, superpower, growth, misconception, push</strong> and replies with prewritten responses that sound like Arjun.</p>
+    </div>
+
+    <footer>
+      Built for 100x — Stage 1 Assessment. No APIs required. For best results, use Chrome on desktop.
+    </footer>
+  </div>
+
+<script>
+
+const transcriptEl = document.getElementById('transcript');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const replayBtn = document.getElementById('replayBtn');
+
+let lastAnswer = "";
+let recognition;
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRecognition) {
+  recognition = new SpeechRecognition();
+  recognition.lang = 'en-US';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+} else {
+  transcriptEl.innerText = "Speech Recognition not supported in this browser. Use Chrome/Edge on desktop for full experience.";
+  startBtn.disabled = true;
+}
+
+startBtn.onclick = () => {
+  transcriptEl.innerText = "Listening... Please ask a question clearly.";
+  lastAnswer = "";
+  try {
+    recognition.start();
+  } catch(e) {
+    
+  }
+};
+
+stopBtn.onclick = () => {
+  if (recognition) recognition.stop();
+  transcriptEl.innerText = "Stopped. Press Start Listening to ask again.";
+};
+
+replayBtn.onclick = () => {
+  if (!lastAnswer) { alert("No answer to replay yet. Ask the bot a question first."); return; }
+  speakText(lastAnswer);
+};
+
+
+const responses = {
+  life: `I’m Jatavath Arjun Kumar. I grew up curious about how things work — first in civil projects during college and then into data. I started by solving small operational problems: cleaning messy spreadsheets, automating weekly reports and building dashboards that actually helped people make decisions. I did internships at MOM Pharmacy and CodeCraft where I learned real business problems, and today I work in Gen AI at TELUS Digital building LLM automations. I like practical work: clean the data first, then find the story it’s trying to tell.`,
+  superpower: `My number one superpower is turning messy, confusing data into clear, actionable insight. I don’t wait for perfect data. I clean it, validate it, and deliver a dashboard or an answer that somebody in operations or product can use immediately.`,
+  growth: `Top three areas I want to grow in are one, stronger production-grade SQL and data modeling; two, deeper data engineering skills — PySpark and production pipelines; and three, advanced ML deployment and observability so models actually work in production rather than just in experiments.`,
+  misconception: `A common misconception people have about me is that I’m quiet or reserved. In reality I’m very hands-on — I observe first, then I build. Once I understand the problem, I communicate clearly and own the outcome.`,
+  push: `I push my boundaries by taking projects outside my comfort zone: if a job asks for ETL design, I take it; if it asks for ML evaluation, I learn and deliver. I set weekly micro-challenges — like automating a manual report in a day — and review results with stakeholders the next week.`,
+  fallback: `I didn’t catch that exactly. Ask me about my life story, my superpower, where I want to grow, common misconceptions about me, or how I push my limits.`,
+};
+
+
+function chooseResponse(text) {
+  const t = text.toLowerCase();
+  if (t.includes('life') || t.includes('story') || t.includes('about your life') ) return responses.life;
+  if (t.includes('superpower') || t.includes('power') ) return responses.superpower;
+  if (t.includes('top') && t.includes('grow') || t.includes('areas') && t.includes('grow') || t.includes('improve')) return responses.growth;
+  if (t.includes('misconception') || t.includes('coworker') || t.includes('people think')) return responses.misconception;
+  if (t.includes('push') && (t.includes('boundary') || t.includes('limit') || t.includes('limits'))) return responses.push;
+  
+  if (t.includes('what should we know')) return responses.life;
+  if (t.includes('how do you push')) return responses.push;
+
+  return responses.fallback;
+}
+
+
+function speakText(text) {
+  if (!('speechSynthesis' in window)) {
+    alert('SpeechSynthesis not supported. Try Chrome/Edge on desktop.');
+    return;
+  }
+  speechSynthesis.cancel(); 
+  const u = new SpeechSynthesisUtterance(text);
+  
+  u.lang = 'en-US';
+  u.rate = 0.95;
+  u.pitch = 1;
+
+  const voices = speechSynthesis.getVoices();
+  if (voices.length) {
+
+    u.voice = voices.find(v => v.lang.startsWith('en')) || voices[0];
+  }
+  speechSynthesis.speak(u);
+}
+
+if (recognition) {
+  recognition.onresult = (evt) => {
+    const spoken = evt.results[0][0].transcript;
+    transcriptEl.innerText = "You: " + spoken;
+    const answer = chooseResponse(spoken);
+    lastAnswer = answer;
+    
+    setTimeout(()=> {
+      transcriptEl.innerText = `You: ${spoken}\n\nBot: ${answer}`;
+    }, 250);
+    speakText(answer);
+  };
+  recognition.onerror = (e) => {
+    transcriptEl.innerText = "Error capturing speech. Try again. (" + e.error + ")";
+  };
+  recognition.onend = () => {
+    
+  };
+}
+</script>
+</body>
+</html>
